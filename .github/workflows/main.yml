@@ -28,8 +28,8 @@ jobs:
           with:
             resource-group: ${{ secrets.RESOURCE_GROUP }}
             dns-name-label: ${{ secrets.RESOURCE_GROUP }}${{ github.run_number }}
-            image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/sampleapp:${{ github.sha }}
-            registry-login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+            image: k8s-9451bf9e.hcp.centralus.azmk8s.io/acr-build-helloworld-node:${{ github.sha }}
+            registry-login-server: k8s-9451bf9e.hcp.centralus.azmk8s.io
             registry-username: ${{ secrets.REGISTRY_USERNAME }}
             registry-password: ${{ secrets.REGISTRY_PASSWORD }}
             name: acr-build-helloworld-node
