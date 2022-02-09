@@ -13,24 +13,43 @@ jobs:
           uses: azure/login@v1
           with:
             creds: ${{ secrets.AZURE_CREDENTIALS }}
+	
+	- name: Set environment variables
+      run: |
+        # Set k8s namespace name
+        if [ $GITHUB_REF_NAME = 'main' ]
+          then echo "NAMESPACE=prod" >> $GITHUB_ENV
+          else echo "NAMESPACE=dev"  >> $GITHUB_ENV
+        fi
+        # Set docker image path
+        echo "IMAGE_ACR=${{ env.ACR }}/nhltop:$GITHUB_SHA" >> $GITHUB_ENV
 
-        - name: 'Build and push image'
-          uses: azure/docker-login@v1
-          with:
-            login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
-            username: ${{ secrets.REGISTRY_USERNAME }}
-            password: ${{ secrets.REGISTRY_PASSWORD }}
-        - run: |
-            docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/sampleapp:${{ github.sha }}
-            docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/sampleapp:${{ github.sha }}
-        - name: 'Deploy to Azure Container Instances'
-          uses: 'azure/aci-deploy@v1'
-          with:
-            resource-group: ${{ secrets.RESOURCE_GROUP }}
-            dns-name-label: ${{ secrets.RESOURCE_GROUP }}${{ github.run_number }}
-            image: k8s-9451bf9e.hcp.centralus.azmk8s.io/acr-build-helloworld-node:${{ github.sha }}
-            registry-login-server: k8s-9451bf9e.hcp.centralus.azmk8s.io
-            registry-username: ${{ secrets.REGISTRY_USERNAME }}
-            registry-password: ${{ secrets.REGISTRY_PASSWORD }}
-            name: acr-build-helloworld-node
-            location: 'east us'
+    - name: Build image
+      run: |
+        docker build "$GITHUB_WORKSPACE/app" \
+               -f "app/Dockerfile" \
+               -t ${{ env.IMAGE_ACR }} \
+               --label dockerfile-path=app/Dockerfile
+        docker tag ${{ env.IMAGE_ACR }}
+    
+    - name: Login to Azure container registry 
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ env.ACR }}
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+
+    - name: Push image to Azure
+      run: docker push ${{ env.IMAGE_ACR }}
+    
+    - name: Set kubernetes context for Azure
+      uses: azure/k8s-set-context@v2
+      with:
+        method: kubeconfig
+        kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
+    - name: Set deployment image for Azure
+      run: |
+        kubectl -n ${{ env.NAMESPACE }} \
+          set image deploy/nhltop *=${{ env.IMAGE_ACR }}
+  
