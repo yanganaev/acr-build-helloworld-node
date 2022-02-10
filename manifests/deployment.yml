@@ -1,0 +1,19 @@
+apiVersion : apps/v1
+kind: Deployment
+metadata:
+  name: yanganaevacrbuildhelloworldnode 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: yanganaevacrbuildhelloworldnode
+  template:
+    metadata:
+      labels:
+        app: yanganaevacrbuildhelloworldnode 
+    spec:
+      containers:
+        - name: yanganaevacrbuildhelloworldnode 
+          image: epamdiplomaacr.azurecr.io/yanganaevacrbuildhelloworldnode
+          ports:
+          - containerPort: 80
