@@ -13,43 +13,44 @@ jobs:
           uses: azure/login@v1
           with:
             creds: ${{ secrets.AZURE_CREDENTIALS }}
-	
-	- name: Set environment variables
-      run: |
+
+        - name: Set environment variables
+          run: |
         # Set k8s namespace name
-        if [ $GITHUB_REF_NAME = 'main' ]
+       if [ $GITHUB_REF_NAME = 'main' ]
           then echo "NAMESPACE=prod" >> $GITHUB_ENV
           else echo "NAMESPACE=dev"  >> $GITHUB_ENV
         fi
         # Set docker image path
         echo "IMAGE_ACR=${{ env.ACR }}/nhltop:$GITHUB_SHA" >> $GITHUB_ENV
 
-    - name: Build image
-      run: |
+        - name: Build image
+          run: |
         docker build "$GITHUB_WORKSPACE/app" \
                -f "app/Dockerfile" \
                -t ${{ env.IMAGE_ACR }} \
                --label dockerfile-path=app/Dockerfile
         docker tag ${{ env.IMAGE_ACR }}
-    
-    - name: Login to Azure container registry 
-      uses: azure/docker-login@v1
-      with:
+
+        - name: Login to Azure container registry
+        uses: azure/docker-login@v1
+        with:
         login-server: ${{ env.ACR }}
         username: ${{ secrets.ACR_USERNAME }}
         password: ${{ secrets.ACR_PASSWORD }}
 
-    - name: Push image to Azure
-      run: docker push ${{ env.IMAGE_ACR }}
-    
-    - name: Set kubernetes context for Azure
-      uses: azure/k8s-set-context@v2
-      with:
+        - name: Push image to Azure
+        run: docker push ${{ env.IMAGE_ACR }}
+
+        - name: Set kubernetes context for Azure
+        uses: azure/k8s-set-context@v2
+        with:
         method: kubeconfig
         kubeconfig: ${{ secrets.KUBE_CONFIG }}
 
-    - name: Set deployment image for Azure
-      run: |
+        - name: Set deployment image for Azure
+        run: |
         kubectl -n ${{ env.NAMESPACE }} \
           set image deploy/nhltop *=${{ env.IMAGE_ACR }}
+
   
